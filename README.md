@@ -1,50 +1,81 @@
-# Wise: Software Architect Mode for Claude Code
+# wise-mode
 
-本プロジェクトは、Claude Code を単なるコーダーから「**シニア・ソフトウェア・アーキテクト**」へと昇華させるためのカスタムスキル（`wise`）です。
-場当たり的な修正を禁止し、TDD（テスト駆動開発）と厳格な設計プロセスを強制します。
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that transforms Claude into a **Software Architect** — enforcing systematic thinking, TDD, adversarial self-review, and quality gates before any code is committed.
 
-## 1. 導入手順 (Setup)
+## What it does
 
-Claude Code セッションの開始時に、必ず以下の手順でスキルを認識させてください。
+When you type `/wise` in Claude Code, the agent shifts into architect mode:
 
-1. **ファイルの配置**: `SKILL.md`、`PATTERNS.md`、`CHECKLISTS.md` をプロジェクトのルートディレクトリに配置します。
-2. **スキルのアクティベート**: 最初に以下の指示を Claude Code に与えます。
-   > `SKILL.md` に定義された `/wise` スキルを読み込み、今後の指示に対してアーキテクトとして振る舞ってください。
-3. [cite_start]**設定の確認**: `.gitignore` と `settings.local.json` が適切に読み込まれていることを確認してください [cite: 1]。
+- **Think first, code second** — 70% understanding, 30% coding
+- **8-phase workflow** — from planning through PR readiness
+- **TDD enforcement** — RED / GREEN / REFACTOR cycle
+- **Adversarial self-review** — "What if this runs twice concurrently?"
+- **Lightweight mode** — auto-scales down for simple, low-risk changes
 
-## 2. 使い方 (Usage)
+## Quick install
 
-`/wise` コマンドの後に、**「解決したい課題」または「実装したい機能の要件」**を記述します。
+Run this in your **project root** (where `.git/` lives):
 
-### 基本的なコマンド形式
 ```bash
-/wise [コンテキスト/課題/Issue番号]
+curl -fsSL https://raw.githubusercontent.com/den-emon/wise-mode/main/install.sh | bash
 ```
 
-### 利用例
-* **複雑な機能の実装**:
-  `/wise 新規ユーザー登録フローを TDD で実装し、PATTERNS.md のバリデーション規則を適用して。`
-* **バグ修正と調査**:
-  `/wise 決済処理で発生している Race Condition を特定し、TOCTOU 防止策を講じて。`
-* **リファクタリング**:
-  `/wise 既存の認証モジュールを SOLID 原則に基づいて 3 ファイル以上に分割・再構成して。`
+This installs the skill into `.claude/skills/wise/` in your project.
 
-## 3. Wise モードの 8 フェーズ (The Process)
+### Manual install
 
-`/wise` が実行されると、エージェントは以下のステップを自動的に開始します。
+```bash
+mkdir -p .claude/skills/wise
+cd .claude/skills/wise
+curl -fsSLO https://raw.githubusercontent.com/den-emon/wise-mode/main/.claude/skills/wise/SKILL.md
+curl -fsSLO https://raw.githubusercontent.com/den-emon/wise-mode/main/.claude/skills/wise/CHECKLISTS.md
+curl -fsSLO https://raw.githubusercontent.com/den-emon/wise-mode/main/.claude/skills/wise/PATTERNS.md
+```
 
-1. **Phase 1: Understanding & Planning**: タスクの複雑度を評価し、`TodoWrite` で計画を作成します。
-2. **Phase 2: Codebase Exploration**: `grep` 等を駆使し、既存のパターンや影響範囲を徹底調査します。
-3. **Phase 3: TDD (RED→GREEN→REFACTOR)**: 実装前に必ず失敗するテストを書き、最小限の実装でパスさせます。
-4. **Phase 4: Implementation**: マジックナンバーを排除し、プロジェクトの規約に沿ったコードを書きます。
-5. **Phase 5: Test Suite Verification**: 変更範囲に応じた適切なテストスイートを実行し、デグレを防ぎます。
-6. **Phase 6: Documentation**: 変更に伴うドキュメントや GitHub Issue を更新します。
-7. **Phase 7: Pre-Commit Review**: 自己批判的なチェックリストに基づき、エッジケースを再検証します。
-8. **Phase 8: PR Readiness**: 最終的な `git diff` を確認し、クリーンな Pull Request を準備します。
+## Usage
 
-## 4. 構成ファイルの詳細
+In Claude Code, type:
 
-* **`SKILL.md`**: アーキテクトとしての行動規範と 8 つのフェーズの定義。
-* **`PATTERNS.md`**: 競合状態の防止や強力なテストアサーションなどの設計パターン集。
-* **`CHECKLISTS.md`**: 実装前、TDD、コミット前に確認すべき品質管理項目。
-* **`settings.local.json`**: AI に許可する Bash 操作（`git`, `gh`, `grep`等）の権限設定。
+```
+/wise implement user authentication with JWT
+```
+
+Claude will activate architect mode and work through:
+
+| Phase | What happens |
+|-------|-------------|
+| 1. **Understanding & Planning** | Reads project docs, assesses complexity, creates a plan |
+| 2. **Codebase Exploration** | Maps existing patterns, verifies APIs exist, identifies impact zone |
+| 3. **TDD** | Writes failing tests first, then minimal implementation, then refactors |
+| 4. **Implementation** | Builds following existing patterns — constants, logging, error handling |
+| 5. **Test Verification** | Runs the appropriate test suite, fixes regressions |
+| 6. **Documentation** | Updates docs and GitHub issues |
+| 7. **Pre-Commit Review** | Adversarial self-review checklist |
+| 8. **PR Readiness** | Self-reviews the diff, opens a clean PR |
+
+### Lightweight mode
+
+Simple changes (single file, < 50 lines, no interface changes) automatically skip the full ceremony — only phases 1, 4, and 7 run.
+
+## Skill files
+
+| File | Purpose |
+|------|---------|
+| `SKILL.md` | Core skill definition — phases, principles, and workflow |
+| `CHECKLISTS.md` | Quick-reference checklists for each phase |
+| `PATTERNS.md` | Concrete code examples for concurrency, testing, and implementation patterns |
+
+## Requirements
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
+- `curl` or `wget` (for the installer)
+
+## Uninstall
+
+```bash
+rm -rf .claude/skills/wise
+```
+
+## License
+
+MIT
