@@ -10,5 +10,30 @@
       "Bash(which:*)",
       "Bash(find:*)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/cclog-hook.sh PostToolUse",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/cclog-hook.sh Stop",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
   }
 }
