@@ -17,12 +17,13 @@ Before touching code, confirm:
 
 - [ ] I understand the requested outcome in concrete terms
 - [ ] I can state what will change
-- [ ] I can state what will **not** change
-- [ ] I have identified acceptance criteria
-- [ ] I have classified the task as **lightweight** or **full path**
+- [ ] I can state what will not change
+- [ ] I identified acceptance criteria
+- [ ] I selected the correct delivery mode: `analysis-only`, `design-only`, or `apply`
+- [ ] If this is `apply`, I classified it as lightweight or full path
 - [ ] I created a todo list with concrete steps
 - [ ] I checked repository guidance (`CLAUDE.md`, `CONTRIBUTING.md`, `README.md`, PR template, docs)
-- [ ] I know whether GitHub issue/PR tracking is actually in use here
+- [ ] I know whether GitHub issue or PR tracking is actually in use here
 - [ ] If GitHub is unavailable, I have a non-GitHub tracking fallback (todo list + final summary)
 
 If any of these are false, you are not ready to implement.
@@ -35,6 +36,8 @@ Before proposing a design, confirm:
 
 - [ ] I verified relevant files, functions, methods, classes, constants, and flags actually exist
 - [ ] I identified local code patterns for logging, errors, validation, config, and tests
+- [ ] I checked migration or rollout conventions if data shape or deployment order matters
+- [ ] I checked auth, permission, and validation boundaries if the change crosses trust boundaries
 - [ ] I mapped callers and dependents of the code I may change
 - [ ] I understand data touched by the change
 - [ ] I identified external side effects
@@ -45,19 +48,31 @@ Before proposing a design, confirm:
 Warning signs:
 - You are relying on memory instead of search
 - You are inventing abstractions before understanding current ones
-- You are planning unrelated cleanup “while you are here”
+- You are planning unrelated cleanup "while you are here"
 
 ---
 
-## 3) Lightweight Path Checklist
+## 3) Advisory Path Checklist
 
-Use only if **all** are true:
+For `analysis-only` or `design-only` work, confirm:
+
+- [ ] I did not silently turn an investigation request into code edits
+- [ ] I gathered direct evidence from the repository before concluding
+- [ ] I can explain why I am recommending this design or root cause
+- [ ] I listed the risks, assumptions, and next step clearly
+- [ ] If this is `design-only`, I produced a validation plan rather than pretending design alone is proof
+
+---
+
+## 4) Lightweight Apply Path Checklist
+
+Use the lightweight path only if all are true:
 
 - [ ] Single file or very tightly localized
 - [ ] Small change
-- [ ] No public API/interface change
-- [ ] No schema/migration implications
-- [ ] No concurrency/shared-state concern
+- [ ] No public API or interface change
+- [ ] No schema or migration implications
+- [ ] No concurrency or shared-state concern
 - [ ] Low regression risk
 - [ ] Test impact is obvious
 
@@ -65,22 +80,23 @@ For lightweight tasks, confirm:
 
 - [ ] I still did a short understanding pass
 - [ ] I still verified symbols and patterns
-- [ ] I still ran appropriate validation/tests
+- [ ] I still ran focused validation or tests
 - [ ] I still performed adversarial review before finishing
+- [ ] I only skipped docs or tracking if nothing user-visible changed
 
 If unsure, do not use the lightweight path.
 
 ---
 
-## 4) TDD / Test Strategy Checklist
+## 5) TDD / Test Strategy Checklist
 
 For non-trivial changes:
 
-- [ ] **RED**: I wrote or updated a test before implementation
+- [ ] RED: I wrote or updated a test before implementation
 - [ ] The test failed for the correct reason
-- [ ] **GREEN**: I implemented the minimum needed behavior
+- [ ] GREEN: I implemented the minimum needed behavior
 - [ ] The test now passes
-- [ ] **REFACTOR**: I only cleaned structure while tests stayed green
+- [ ] REFACTOR: I only cleaned structure while tests stayed green
 
 Quality of tests:
 
@@ -88,8 +104,8 @@ Quality of tests:
 - [ ] Boundary cases are covered where relevant
 - [ ] Error paths are covered where relevant
 - [ ] Important side effects are asserted
-- [ ] Repeated execution / idempotency is checked where relevant
-- [ ] Tests would catch subtle operator/condition regressions
+- [ ] Repeated execution or idempotency is checked where relevant
+- [ ] Tests would catch subtle operator or condition regressions
 - [ ] Tests are isolated from unrelated external dependencies where possible
 
 Ask:
@@ -100,7 +116,7 @@ Ask:
 
 ---
 
-## 5) Legacy / Weakly-Tested Area Checklist
+## 6) Legacy / Weakly-Tested Area Checklist
 
 If the area has weak or no tests:
 
@@ -115,30 +131,60 @@ They are the safety net that lets you change code responsibly.
 
 ---
 
-## 6) Implementation Checklist
+## 7) Implementation Checklist
 
 While coding, confirm:
 
-- [ ] I am using existing constants/enums/config where appropriate
+- [ ] I am using existing constants, enums, and config where appropriate
 - [ ] I am following local naming and module boundaries
 - [ ] Input validation happens at the correct boundary
 - [ ] Error handling is coherent with the repository style
-- [ ] Logging/metrics follow existing patterns
+- [ ] Logging or metrics follow existing patterns
 - [ ] I did not introduce unnecessary scope creep
 - [ ] I did not hard-code values that should be centralized
 
-If shared state / async / transactions are involved:
+If shared state, async work, or transactions are involved:
 
 - [ ] I identified all actors that can mutate the state
 - [ ] I checked race and repeated-execution scenarios
 - [ ] I defined invariants that must hold before and after execution
-- [ ] I considered locking / serialization / atomicity needs
+- [ ] I considered locking, serialization, or atomicity needs
 - [ ] I considered rollback behavior
 - [ ] I considered which side effects must persist even on failure
 
 ---
 
-## 7) Design Reset Checklist
+## 8) Migration / Irreversible Change Checklist
+
+Use this whenever data shape, deployment order, or rollback complexity matters.
+
+- [ ] I identified whether the change needs expand/contract, backfill, dual-write, or compatibility shims
+- [ ] I know whether old and new readers or writers can coexist during rollout
+- [ ] I have a dry-run, no-op, or preview path where feasible
+- [ ] I separated code rollback from data rollback in the plan
+- [ ] I know which steps are irreversible and how they will be communicated
+- [ ] I have a reconciliation plan, metric, or audit query for silent drift
+- [ ] I considered feature flags or staged rollout guards where useful
+- [ ] I checked deployment ordering across services, workers, and jobs
+
+---
+
+## 9) Security Checklist
+
+Use this whenever the change crosses a trust boundary or touches sensitive data.
+
+- [ ] Authentication behavior is explicit and still correct
+- [ ] Authorization checks happen at the trusted boundary, not only in the UI
+- [ ] Inputs are validated and canonicalized before use
+- [ ] Query or command construction avoids injection risks
+- [ ] Secrets, tokens, and credentials are not hard-coded or logged
+- [ ] Logs, errors, and tests redact sensitive data where needed
+- [ ] File paths, URLs, or remote fetches resist traversal or SSRF where relevant
+- [ ] Replay, idempotency, and rate-limit concerns are handled for externally triggered work
+
+---
+
+## 10) Design Reset Checklist
 
 If implementation reveals the design is wrong:
 
@@ -148,11 +194,11 @@ If implementation reveals the design is wrong:
 - [ ] Revise tests if the target behavior changed
 - [ ] Continue only after the new design is explicit
 
-Do **not** keep layering fixes onto a design you no longer trust.
+Do not keep layering fixes onto a design you no longer trust.
 
 ---
 
-## 8) Verification Checklist
+## 11) Verification Checklist
 
 Before declaring success:
 
@@ -160,64 +206,49 @@ Before declaring success:
 - [ ] All relevant tests passed
 - [ ] I did not ignore failing relevant tests
 - [ ] I checked nearby behavior that could regress
-- [ ] I verified docs/config/examples if they were affected
+- [ ] I verified docs, config, migrations, or examples if they were affected
 - [ ] I reviewed the diff, not just the final files
 
 Suggested test scope:
-- Tiny isolated change → related tests
-- Feature-local change → feature/module suite
-- Cross-cutting change → all affected modules
-- Schema/security/auth/concurrency change → broaden validation accordingly
+- Tiny isolated change: related tests
+- Feature-local change: feature or module suite
+- Cross-cutting change: all affected modules
+- Schema, auth, migration, rollout, or concurrency change: broaden validation accordingly
 
 ---
 
-## 9) Adversarial Review Checklist
+## 12) Docs and Tracking Checklist
 
-Before handoff, ask:
-
-- [ ] What happens if this runs twice?
-- [ ] What happens with null, empty, zero, negative, huge, or malformed input?
-- [ ] What assumptions could still be wrong?
-- [ ] What else touches the same state?
-- [ ] Could this create a race, duplicate side effect, stale read, or partial write?
-- [ ] Does the code match local conventions?
-- [ ] Are acceptance criteria actually met?
-- [ ] Would I be comfortable owning this in production?
-
-If any answer is weak, fix it or document the risk explicitly.
-
----
-
-## 10) Docs and Tracking Checklist
-
-If the change affected behavior, usage, config, or conventions:
+If the change affected behavior, usage, config, conventions, or rollout steps:
 
 - [ ] I updated docs accordingly
-- [ ] I removed dead code instead of commenting it out
 - [ ] I updated examples if needed
+- [ ] I removed dead code instead of commenting it out
+- [ ] I recorded migration or rollout instructions if operators need them
 
 Tracking:
 
-- [ ] If GitHub issue/PR workflow exists, I updated it
+- [ ] If GitHub issue or PR workflow exists, I updated it
 - [ ] If not, the final summary records the same information
 - [ ] Open follow-up work is explicit, not implied
 
 ---
 
-## 11) Final Handoff Checklist
+## 13) Final Handoff Checklist
 
 My final output includes:
 
-- [ ] What changed
+- [ ] The selected delivery mode
+- [ ] What changed or what I found
 - [ ] Why this approach
-- [ ] Files changed
-- [ ] Tests added/updated/run
+- [ ] Files changed or evidence checked
+- [ ] Tests added, updated, planned, or run
 - [ ] Risks checked
-- [ ] Docs/tracking updated
+- [ ] Docs or tracking updated
 - [ ] Open questions or next steps
 
 A good handoff should let a reviewer answer:
-“What changed, why, how was it validated, and what remains?”
+"What changed, why, how was it validated, and what remains?"
 
 ---
 
@@ -241,7 +272,7 @@ npm test -- path/to/test
 pytest path/to/test_file.py
 go test ./path/to/package
 cargo test package_name
-````
+```
 
 ---
 

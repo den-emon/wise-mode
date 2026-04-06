@@ -3,19 +3,23 @@ name: wise-cont
 description: >
   Persistent wise mode for the entire session.
   Once /wise-cont is invoked, all subsequent user messages automatically receive
-  wise (Software Architect) mode principles and phases.
+  wise delivery-mode selection and phase discipline.
   /wise-cont-off to deactivate.
   Also trigger on phrases like "keep wise on", "stay in architect mode", "continuous wise".
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, TodoWrite, WebFetch, AskUserQuestion
 ---
 
-# Continuous Architect Mode — wise-cont
+# Continuous Architect Mode - wise-cont
 
 ## What This Skill Does
 
 **From the moment `/wise-cont` is invoked, every response in this session operates under wise mode.**
 
 The user no longer needs to type `/wise` for each task. Regardless of task size, architect-level thinking persists across all subsequent messages.
+
+`wise-cont` is a wrapper.
+`wise` remains the canonical source for delivery modes, phase selection, and tracking policy.
+Do not invent alternate lightweight rules or issue requirements here.
 
 ---
 
@@ -37,28 +41,31 @@ Deactivate: /wise-cont-off
 
 ### Rule 1: Apply wise to every message
 
-Starting from the next user message — even without `/wise` — automatically:
+Starting from the next user message, even without `/wise`, automatically:
 
-1. **Assess complexity** — determine task complexity from the message content
-2. **Select the appropriate mode** — choose Lightweight or Full based on assessment
-3. **Execute phases** — follow the phases of the selected mode
+1. Assess the request
+2. Select the appropriate delivery mode from `wise`
+3. If the mode is `apply`, select Lightweight or Full using `wise`
+4. Execute only the phases that match that mode
 
 ### Rule 2: Include mode indicator in every response
 
 Prefix every response with one of the following:
 
-- `## [WISE MODE] Phase N: Name` — when executing a full-process phase
-- `## [WISE MODE: LIGHT]` — when applying Lightweight mode
-- `## [WISE MODE: Q&A]` — when answering questions or discussions (no code changes)
+- `## [WISE MODE: ANALYSIS]` when running the `analysis-only` path
+- `## [WISE MODE: DESIGN]` when running the `design-only` path
+- `## [WISE MODE: LIGHT]` when running the lightweight `apply` path
+- `## [WISE MODE: APPLY] Phase N: Name` when executing the full `apply` path
 
 ### Rule 3: Automatic complexity assessment criteria
 
 | User request | Mode | Phases applied |
 |-------------|------|----------------|
-| Question or discussion (no code changes) | Q&A | Core Identity thinking principles only |
-| Single file, < 50 lines, low risk | Lightweight | Phase 1 (abbreviated) → 4 → 7 |
-| 2–3 files, clear scope | Full (Medium) | Phase 1–8 |
-| 4+ files, new dependencies, schema changes, etc. | Full (Complex) | Phase 1–8 + GitHub issue required |
+| Question, debugging discussion, or investigation with no code changes | Analysis-only | Phase 1 -> 2 -> 7 |
+| Design comparison, planning, migration design, or "what should we build?" | Design-only | Phase 1 -> 2 -> 3 (plan only) -> 7, plus 6 if docs/tracking should change |
+| Single file, small change, low risk | Apply (Lightweight) | Phase 1 (abbreviated) -> 4 -> 5 -> 7, plus 6 if docs/tracking changed |
+| Multi-file work with clear scope | Apply (Full) | Phase 1 -> 8, with Phase 6 only when relevant |
+| Complex work such as schema, migration, auth, concurrency, or rollout changes | Apply (Full/Complex) | Phase 1 -> 8, plus issue/tracking updates only if the repo already uses them |
 
 ### Rule 4: Core Identity is always maintained
 
@@ -81,8 +88,9 @@ Before committing any code, attack it:
 
 ### Rule 5: Refer to the wise skill for phase details
 
-The detailed procedures for each phase (Phase 1–8) are defined in `.claude/skills/wise/SKILL.md`.
-wise-cont is a wrapper that automatically applies those phases — it does not redefine their content.
+The detailed procedures for each phase are defined in `.claude/skills/wise/SKILL.md`.
+wise-cont automatically applies those procedures.
+It should not redefine alternate delivery modes, lightweight criteria, or issue policy.
 
 **Phase summary:**
 
@@ -90,10 +98,10 @@ wise-cont is a wrapper that automatically applies those phases — it does not r
 |-------|------|---------|
 | 1 | Understanding & Planning | Discover project standards, assess complexity, create plan |
 | 2 | Codebase Exploration | Map existing patterns, verify APIs, identify impact zone |
-| 3 | TDD | RED → GREEN → REFACTOR |
+| 3 | TDD / Validation Plan | RED -> GREEN -> REFACTOR, or the equivalent design-time validation plan |
 | 4 | Implementation | Build following established patterns |
 | 5 | Test Suite Verification | Ensure no regressions |
-| 6 | Documentation & GitHub | Update docs and issues |
+| 6 | Documentation & Tracking | Update docs, examples, and tracking when relevant |
 | 7 | Pre-Commit Review | Adversarial self-review |
 | 8 | PR & Review Readiness | Open clean PR, handle review bots |
 
@@ -101,7 +109,7 @@ wise-cont is a wrapper that automatically applies those phases — it does not r
 
 ## Deactivation
 
-### `wise-cont-off` — Deactivate continuous mode
+### `wise-cont-off` - Deactivate continuous mode
 
 When the user types `/wise-cont-off` or says "turn off wise mode", "back to normal mode", etc.:
 
