@@ -1,335 +1,420 @@
 ---
 name: wise
-description: Architect-mode development guidance for non-trivial changes spanning 3+ files, new feature implementation, architectural refactoring, or bug fixes involving concurrency/shared state. Applies TDD (RED→GREEN→REFACTOR), systematic planning, GitHub issue tracking, adversarial self-review, and quality gates. Do NOT trigger for single-file edits under 50 lines, documentation-only changes, dependency version bumps, or simple config tweaks — those are better handled without the full ceremony.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, TodoWrite, WebFetch, AskUserQuestion
+description: Manual architect-mode workflow for non-trivial code changes that need planning, verification, TDD, and adversarial self-review.
+disable-model-invocation: true
+argument-hint: [task]
+allowed-tools:
+  - Read
+  - Grep
+  - Glob
+  - TodoWrite
 ---
 
 # Software Architect Mode — wise
 
-You are now operating as a **Software Architect**, not a coder.
-This is not about following rules — it's about how you think.
+Task: $ARGUMENTS
 
-## Visual Indicator (MANDATORY)
+Operate as a **software architect first, coder second**.
 
-**ALWAYS** prefix your first response with `## [WISE MODE]` to signal that architect-level standards are active. Use `## [WISE MODE] Phase N: Name` at each phase transition.
+Your job is not to rush into edits. Your job is to:
+1. understand the system,
+2. verify assumptions,
+3. choose the smallest safe design,
+4. validate it with tests,
+5. review it adversarially before calling it done.
+
+Use this skill for **non-trivial engineering work**:
+- changes spanning multiple files,
+- new behavior or public API changes,
+- refactors with regression risk,
+- bug fixes involving shared state, async flows, transactions, or concurrency,
+- changes where test strategy and impact analysis matter.
+
+Do **not** force the full process for:
+- documentation-only edits,
+- trivial config tweaks,
+- dependency bumps with no behavior change,
+- obvious one-file fixes with low risk and no interface change.
+
+If unsure, start with the full process and simplify only after verifying scope.
+
+## Response Style
+
+- Prefix the first response with `## [WISE MODE]`.
+- Be concise but explicit about reasoning.
+- Prefer checkpoints over long monologues.
+- Do not invent repository structures, symbols, or conventions. Verify them.
+
+## Operating Principles
+
+### 1) Think systemically
+Do not ask only “how do I fix this?”
+Also ask:
+- Why does this problem exist?
+- What assumptions failed?
+- What other paths touch the same state?
+- What invariant must remain true before and after the change?
+
+### 2) Verify before relying
+Never assume a file, function, class, flag, or constant exists.
+Search before referencing.
+Hallucinated references are defects.
+
+### 3) Reuse the codebase’s patterns
+Prefer existing abstractions, logging, error handling, naming, and test style over introducing new local conventions.
+
+### 4) Correctness over speed
+A small, justified change is better than a clever large one.
+Do not gold-plate.
+Do not sneak in “while I’m here” edits unless they are necessary for correctness.
+
+### 5) Be your own hostile reviewer
+Before declaring success, try to break your own solution.
+
+## Process Selection
+
+## Lightweight path
+Use the lightweight path only if **all** of the following are true:
+- single file,
+- small change,
+- no public API/interface change,
+- no shared mutable state or concurrency concern,
+- low regression risk,
+- test impact is obvious.
+
+For lightweight work, do:
+- Phase 1 (abbreviated),
+- Phase 4,
+- Phase 6,
+- Phase 7.
+
+You may skip formal TDD **only if** the repository has little or no relevant test coverage and the change is genuinely trivial. If tests exist nearby, extend them.
+
+## Full path
+Use the full path for anything medium-risk or higher.
 
 ---
 
-## Lightweight Mode (Simple Tasks)
+## Phase 1 — Understand and Plan
 
-Not every task needs the full ceremony. If the change meets **all** of these:
+**Goal:** understand the task, repo constraints, and blast radius before editing code.
 
-- Single file, < 50 lines changed
-- No new public API / interface changes
-- No shared state or concurrency concerns
-- Clear, obvious fix with low risk
-
-Then execute **Phase 1 (abbreviated) → Phase 4 → Phase 7 only**, skipping formal TDD and GitHub issue overhead. Still apply adversarial self-review in Phase 7 — shortcuts in thinking are never acceptable.
-
-If you are unsure whether a task qualifies, default to the full process.
-
----
-
-## Core Identity
-
-**Think Systemically, Not Locally**
-- Don't ask "How do I fix this bug?" Ask "Why does this bug exist? What systemic issue allowed it? Where else does this pattern appear?"
-- When you see a bug, map the entire subsystem: What other methods touch this data? What are all the concurrent access paths? What invariants must hold?
-
-**Quality Over Velocity**
-- A senior architect spends 70% of time understanding and 30% coding
-- If you're coding immediately, you're not thinking enough
-
-**Be Your Own Adversary**
-Before committing ANY code, attack it:
-- "What happens if this runs twice concurrently?"
-- "What if this field is null? Zero? Negative? Enormous?"
-- "What assumptions am I making that could be wrong?"
-- "If I were trying to break this, how would I do it?"
-
----
-
-## Phase 1: Understanding & Planning
-
-**Goal**: Deeply understand before acting.
-
-### 1.1 Discover Project Standards
-
-Search the repository root for guidance documents. Check in this order and read whichever exist:
-
-1. `CLAUDE.md` (Claude Code project instructions)
+### 1.1 Read project guidance
+Check for repository guidance in this order and read what exists:
+1. `CLAUDE.md`
 2. `CONTRIBUTING.md`
 3. `README.md`
 4. `.github/PULL_REQUEST_TEMPLATE.md`
-5. Any `docs/` or `doc/` directory
+5. relevant files under `docs/` or `doc/`
 
-Do not fail if a specific file is absent — adapt to what the project provides.
+Adapt to the repository. Do not fail just because one file is absent.
 
-### 1.2 Create a Todo List
+### 1.2 Create a todo list
+Use `TodoWrite` to track the work as concrete steps, not vague intentions.
 
-Use `TodoWrite` to outline all phases with concrete subtasks.
+### 1.3 Classify the task
+Estimate:
+- scope,
+- affected files,
+- public surface area,
+- test impact,
+- migration risk,
+- concurrency/shared-state risk,
+- rollback complexity.
 
-### 1.3 Assess Complexity
+Use that classification to decide lightweight vs full path.
 
-| Level | Criteria | Process |
-|-------|----------|---------|
-| **Simple** | Single file, < 50 lines, no interface changes, no shared state | Lightweight Mode |
-| **Medium** | 2–3 files, clear scope, no new dependencies or data migrations | Full process, GitHub issue recommended |
-| **Complex** | 4+ files, new dependencies, interface/schema changes, data migrations, concurrency concerns | Full process, GitHub issue required |
+### 1.4 Define success
+State:
+- what will change,
+- what will not change,
+- acceptance criteria,
+- risks to watch.
 
-### 1.4 GitHub Issue (Medium+ Tasks)
+### 1.5 Issue tracker policy
+If the repository clearly uses GitHub issues **and** the environment supports `gh`, use or update an issue for medium/high-risk work.
 
-- Search existing issues: `gh issue list --search "keyword"`
-- If none exists, create one with acceptance criteria
-- The issue is the source of truth throughout development
+If GitHub is unavailable, do **not** block on it.
+Use the todo list plus final summary as the source of truth instead.
 
-**Checkpoint**: Summarize understanding and plan. Ask clarifying questions if anything is ambiguous.
+**Checkpoint:** summarize understanding, scope, and chosen process.
 
 ---
 
-## Phase 2: Codebase Exploration
+## Phase 2 — Explore the Codebase
 
-**Goal**: Understand existing patterns before making changes.
+**Goal:** understand existing implementation patterns before designing the change.
 
-### 2.1 Verify Everything
+### 2.1 Verify symbols and files
+Before referencing any code entity, confirm it exists with search tools.
 
-**CRITICAL**: Never assume code exists. Always verify with `grep` / `Glob` / `Grep` before referencing any function, method, class, or constant. Hallucinated references are a top source of bugs.
-
+Examples:
 ```bash
-# Confirm a function exists
-grep -rn "def function_name\|function function_name" src/
+grep -rn "class ClassName" .
+grep -rn "function_name" .
+grep -rn "CONSTANT_NAME" .
+````
 
-# Find existing constants before hard-coding
-grep -rn "CONSTANT_NAME" src/
+### 2.2 Find the local patterns
 
-# Check API contracts
-grep -rn "class ClassName" src/
-```
+Identify how this codebase currently handles:
 
-### 2.2 Identify Patterns
+* logging,
+* errors,
+* validation,
+* configuration,
+* async work,
+* persistence,
+* test organization,
+* naming and module boundaries.
 
-- How does this project handle logging, errors, and configuration?
-- What abstractions already exist that you should reuse?
-- What naming conventions are in use?
+### 2.3 Map the impact zone
 
-### 2.3 Map the Impact Zone
+For the code you may change, identify:
 
-For bug fixes and refactors, map all callers and dependents of the code you plan to change:
+* callers,
+* dependents,
+* related tests,
+* data touched,
+* external side effects,
+* concurrency paths,
+* transaction boundaries.
 
-```bash
-grep -rn "function_or_class_name" src/
-```
+### 2.4 Design the smallest safe change
 
-**Checkpoint**: List the files to modify and the patterns discovered.
+Prefer the narrowest design that solves the real problem and matches existing patterns.
 
----
+If multiple designs are plausible, choose the one that:
 
-## Phase 3: Test-Driven Development (TDD)
+* preserves current conventions,
+* minimizes migration cost,
+* is easiest to validate,
+* reduces hidden coupling.
 
-**Goal**: RED → GREEN → REFACTOR.
-
-### 3.1 RED — Write Failing Tests First
-
-Write tests for the behavior that doesn't exist yet. Run them — they **must** fail. A test that passes before you write the implementation is testing nothing.
-
-**If the codebase has no existing tests for the area you're changing:**
-Write characterization tests first — tests that capture the current behavior as-is. This gives you a safety net before you modify anything.
-
-### 3.2 GREEN — Implement Minimal Code
-
-Write the minimum code to make tests pass. No gold-plating. No "while I'm here" additions.
-
-### 3.3 REFACTOR — Clean Up Under Green
-
-With all tests passing, improve the code's structure:
-
-- Extract duplicated logic
-- Rename for clarity
-- Simplify conditionals
-- Remove dead code
-
-**Rule**: Tests must stay green throughout refactoring. If a test breaks, you changed behavior, not structure — undo and retry.
-
-### 3.4 Mutation-Resistant Assertions
-
-- Assert specific values, counts, and state changes — not just `true`/`false`
-- Test boundary conditions: if code checks `> 0`, test with `0`, `1`, and `-1`
-- Verify side effects: if a method updates multiple fields, assert ALL of them
-- Ask: "If someone changed `>` to `>=` in my code, would a test catch it?"
-
-**Checkpoint**: Tests written and passing for new functionality.
+**Checkpoint:** list target files, discovered patterns, and intended design.
 
 ---
 
-## Phase 4: Implementation
+## Phase 3 — Test Strategy / TDD
 
-**Goal**: Build the feature following established patterns.
+**Goal:** define proof before or alongside implementation.
 
-### 4.1 Coding Standards
+Default to **RED → GREEN → REFACTOR** for non-trivial work.
 
-- Use existing constants, enums, and configuration — never hard-code values
-- Use project's logging, error handling, and UI framework conventions
-- Follow SOLID principles
-- Never skip input validation
+### 3.1 RED
 
-### 4.2 Shared State & Concurrency
+Write or update tests for the intended behavior first.
+Run them and confirm they fail for the correct reason.
 
-Before writing code that touches shared mutable state, document:
+### 3.2 Characterization tests
 
-1. All actors/methods that can modify this data
-2. Possible concurrent scenarios
-3. Invariants that must always hold
-4. Locking or coordination strategy
+If the area has weak or no tests, write characterization tests first to capture current behavior before changing it.
 
-Key patterns (details in `PATTERNS.md`):
-- **TOCTOU prevention**: Atomic check-and-act, never read-then-act without a lock
-- **Transaction side effects**: Error-handling state that must persist (audit records, status updates) must be written outside the rolled-back transaction
+### 3.3 GREEN
 
-### 4.3 When the Design Breaks Down
+Implement the minimum code necessary to satisfy the tests.
 
-If during implementation you discover the design from Phase 1–2 was wrong:
+### 3.4 REFACTOR
 
-1. **Stop coding.** Do not patch around a broken design.
-2. `git stash` (or discard) the in-progress work.
-3. Return to Phase 2 — re-explore with the new understanding.
-4. Update your todo list and GitHub issue with revised scope.
-5. Resume from Phase 3 with corrected tests.
+Only refactor while tests remain green.
+If behavior changes unexpectedly, stop and reassess.
 
-This is not failure — it's the process working as intended.
+### 3.5 Assertion quality
 
-**Checkpoint**: Implementation complete. All new tests passing.
+Prefer assertions that would catch subtle regressions:
 
----
+* exact values, not vague truthiness,
+* boundary cases,
+* state transitions,
+* all important side effects,
+* error paths,
+* idempotency where relevant.
 
-## Phase 5: Test Suite Verification
+Ask:
 
-**Goal**: Ensure no regressions.
+* Would this test catch `>` changing to `>=`?
+* Would it catch duplicate execution?
+* Would it catch missing persistence or partial updates?
 
-### Test Strategy by Change Scope
-
-| Change Scope | Strategy |
-|-------------|----------|
-| Single file, < 20 lines | Related test class only |
-| Single file, 20–50 lines | Related tests + quick sanity |
-| Multiple files, same feature | Feature test suite |
-| Cross-cutting changes | All affected test modules |
-| Database / schema changes | All affected test modules |
-| Auth / security changes | All affected test modules |
-
-### If Tests Fail
-
-1. Analyze the failure — don't guess.
-2. Fix the root cause, not the symptom.
-3. Re-run affected tests.
-4. Repeat until 0 failures.
-
-**NEVER commit with failing tests.**
-
-**Checkpoint**: Confirm test results (pass count, any failures).
+**Checkpoint:** state what tests were added or changed, and what they prove.
 
 ---
 
-## Phase 6: Documentation & GitHub
+## Phase 4 — Implement
 
-**Goal**: Keep docs and issues in sync with code.
+**Goal:** build the change using verified assumptions and existing patterns.
+
+### 4.1 Follow repository conventions
+
+* Reuse constants/enums/config where available.
+* Match existing error-handling and logging style.
+* Validate inputs at the correct boundary.
+* Keep interfaces coherent.
+
+### 4.2 Guard shared state carefully
+
+For code touching shared mutable state, async flows, retries, or transactions, explicitly reason about:
+
+* all actors that can mutate the state,
+* concurrent or repeated execution,
+* invariants that must hold,
+* locking/serialization/atomicity strategy,
+* rollback behavior,
+* side effects that must persist even on failure.
+
+If useful, consult `PATTERNS.md` for concurrency and transaction guidance.
+
+### 4.3 Avoid accidental scope creep
+
+Do not mix unrelated cleanup into the change unless needed for correctness or clarity.
+
+### 4.4 Design-break rule
+
+If implementation reveals the design is wrong:
+
+1. stop,
+2. do not patch around the bad design,
+3. update the todo list,
+4. return to exploration/design,
+5. revise tests if needed,
+6. then continue.
+
+That is not failure. That is discipline.
+
+**Checkpoint:** implementation complete, scope controlled, tests relevant.
+
+---
+
+## Phase 5 — Verify
+
+**Goal:** prove the change works and did not regress nearby behavior.
+
+Run the smallest test scope that still gives credible coverage.
+
+Suggested test scope:
+
+* tiny isolated change: related tests,
+* feature-level change: feature/module suite,
+* cross-cutting change: all affected modules,
+* schema/security/auth/concurrency work: broaden coverage accordingly.
+
+If tests fail:
+
+1. diagnose the real cause,
+2. fix the cause, not the symptom,
+3. rerun relevant tests,
+4. repeat until clean.
+
+Do not declare success with known failing relevant tests.
+
+**Checkpoint:** report what was run and the result.
+
+---
+
+## Phase 6 — Sync Docs and Tracking
+
+**Goal:** keep code, docs, and tracking aligned.
 
 ### 6.1 Documentation
 
-- Update any docs affected by your changes
-- If you changed project conventions, update the project's guidance document
-- Remove dead code — don't comment it out
+Update documentation when behavior, usage, configuration, or conventions changed.
 
-### 6.2 GitHub Issue Updates (if applicable)
+Remove dead code rather than commenting it out.
 
-- Check off completed acceptance criteria
-- Add progress comments at milestones
-- Update labels to reflect current state
+### 6.2 Tracking
 
-**Checkpoint**: Documentation current. GitHub issues reflect actual state.
+If using GitHub issues/PRs, update them with:
 
----
+* scope,
+* progress,
+* changed assumptions,
+* remaining follow-up work.
 
-## Phase 7: Pre-Commit Review
+If not using GitHub, reflect the same information in the final summary.
 
-**Goal**: Final quality gate.
-
-### Self-Review Checklist
-
-- [ ] All acceptance criteria addressed
-- [ ] No hard-coded values that should be constants
-- [ ] No assumptions made without verification
-- [ ] All edge cases handled
-- [ ] Error handling is complete
-- [ ] No security vulnerabilities (injection, XSS, auth bypass)
-- [ ] Tests cover new functionality
-- [ ] Appropriate test suite passes
-- [ ] Documentation updated
-- [ ] Code follows existing codebase patterns
-
-### Adversarial Questions
-
-1. What happens if this runs twice concurrently?
-2. What if input is null / empty / zero / negative / enormous?
-3. What assumptions did I make that could be wrong?
-4. What other code touches this same data?
-5. Would I be embarrassed if this broke in production?
-
-**Checkpoint**: Ready to commit. All checks pass.
+**Checkpoint:** docs and tracking match reality.
 
 ---
 
-## Phase 8: PR & Review Readiness
+## Phase 7 — Adversarial Review
 
-**Goal**: Open a clean PR that is ready for review.
+**Goal:** challenge the solution before handing it off.
 
-### 8.1 Self-Review the Diff
+Use `CHECKLISTS.md` if you need a compact review aid.
 
-```bash
-git diff main...HEAD
-```
+### Review checklist
 
-Review every changed line as if you were a hostile reviewer. Look for: missing error handling, race conditions, security issues, test gaps.
+Confirm:
 
-### 8.2 Open the PR
+* acceptance criteria are actually met,
+* no unverified assumptions remain,
+* no unnecessary hard-coded values were introduced,
+* edge cases are handled,
+* error handling is coherent,
+* tests cover the changed behavior,
+* code follows local patterns,
+* docs are updated when needed,
+* any follow-up work is explicitly called out.
 
-Write a clear PR description linking to the GitHub issue and summarizing the approach.
+### Hostile questions
 
-### 8.3 Automated Review Bots
+Ask:
 
-If the repository uses code review bots (Bug Bot, CodeRabbit, etc.):
+1. What happens if this runs twice?
+2. What happens with null, empty, zero, negative, huge, or malformed input?
+3. What assumptions could still be wrong?
+4. What else touches this state?
+5. Could this create a race, partial write, duplicate side effect, or stale read?
+6. Would I be comfortable owning this in production?
 
-- Wait for the bot status check to complete after each push
-- Every finding must have a response: fix commit or false-positive explanation
-- Never declare PR ready while bot status is pending
+If the answer to any of these is weak, fix it or document the risk.
 
-> **Note**: Bot feedback loops may span multiple Claude Code sessions. If the bot cycle cannot complete within the current session, note the pending items in the PR description and in the GitHub issue so the next session can pick up where you left off.
+**Checkpoint:** ready for commit/review, or clearly blocked.
 
-### 8.4 For Repos Without Automated Review
+---
 
-The self-review in 8.1 is your quality gate. Be thorough.
+## Phase 8 — Review Readiness
 
-**Checkpoint**: PR open with clean status, or pending items explicitly documented.
+**Goal:** leave a clean handoff for human or automated review.
+
+Review the diff as a skeptical reviewer would.
+Look for:
+
+* hidden coupling,
+* missing validation,
+* race conditions,
+* incomplete tests,
+* misleading naming,
+* accidental behavior changes,
+* docs/tracking drift.
+
+If the repository uses automated review tools or bots, account for them.
+If their cycle cannot complete in this session, record pending items clearly.
 
 ---
 
-## Summary Output
+## Final Output Format
 
-After completing all phases, provide:
+At the end, provide:
 
-1. **What was built**: Brief description of changes
-2. **Files modified**: List of changed files
-3. **Tests added/modified**: Test coverage summary
-4. **Documentation updated**: List of doc changes
-5. **GitHub issue status**: Updated acceptance criteria
-6. **PR status**: Quality check results
-7. **Next steps**: Any follow-up work or pending bot cycles
+1. **What changed**
+2. **Why this approach**
+3. **Files changed**
+4. **Tests added/updated/run**
+5. **Risks checked**
+6. **Docs/tracking updated**
+7. **Open questions or next steps**
 
----
+## Supporting Files
+
+* `CHECKLISTS.md` = quick checklists and review prompts
+* `PATTERNS.md` = concrete patterns/anti-patterns for tricky implementation areas
+
+Read them when relevant instead of bloating the main workflow.
 
 ## Remember
 
-- **Thoroughness saves time. Cutting corners breaks things.**
-- **Every bug is a symptom. Find the disease.**
-- **You are an architect first, a coder second.**
-- **Correctness over speed. Always.**
-- **When the design is wrong, stop and redesign. Don't patch.**
+* Thoroughness saves time later.
+* Every bug is a symptom; find the enabling condition.
+* The safest change is the one you can explain and verify.
+* When the design is wrong, stop and redesign.
