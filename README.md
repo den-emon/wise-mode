@@ -2,6 +2,18 @@
 
 A collection of [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills and hooks for disciplined development: **terse-mode** for brevity, **swarm** for parallel delegation plans, **wise** for architect-mode quality gates, **wise-cont** for persistent architect mode, and **cclog** for automatic session logging.
 
+## Why wise-mode?
+
+Most AI coding failures are not syntax failures. They come from acting before the agent has mapped the system, verified assumptions, or chosen a safe validation path.
+
+wise-mode adds repo-local workflows that make Claude Code more disciplined without turning every task into ceremony:
+
+- **Raise the quality floor:** `/wise` makes the agent investigate first, choose the smallest safe design, validate with tests or evidence, and review its own work adversarially before handoff.
+- **Scale process to risk:** quick lookups stay lightweight, while higher-risk changes get explicit planning, impact analysis, validation, and review readiness.
+- **Coordinate parallel work safely:** `/swarm` creates scoped agent briefs and a runnable swarm plan with explicit write ownership to reduce conflicts.
+- **Preserve session context automatically:** `cclog` records Claude Code tool activity to `.claude/log/` through hooks, with no prompt-token cost.
+- **Reduce response noise:** `/terse-mode` keeps technical substance while cutting filler when you want tighter answers.
+
 ## Components
 
 | Name | Type | Description |
