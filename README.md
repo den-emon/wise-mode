@@ -75,6 +75,10 @@ For cclog, add the following to `.claude/settings.local.json`:
             "type": "command",
             "command": ".claude/hooks/cclog-hook.sh PostToolUse",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/sync_to_obsidian.py"
           }
         ]
       }
@@ -86,6 +90,10 @@ For cclog, add the following to `.claude/settings.local.json`:
             "type": "command",
             "command": ".claude/hooks/cclog-hook.sh Stop",
             "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/sync_to_obsidian.py"
           }
         ]
       }
@@ -250,11 +258,11 @@ src/utils.ts:10:export function handleError(e: Error) {
 
 Converts Claude Code session transcripts (JSONL) into Markdown and saves them to your Obsidian vault.
 
-> **You must update `VAULT_DIR`** — the default path is `/Documents/ObsidianVault/syc-ob-data`. Change `VAULT_DIR` in `.claude/hooks/sync_to_obsidian.py` to point to your own Obsidian vault.
+> **Disabled by default.** To enable, edit `.claude/hooks/sync_to_obsidian.py` and set `VAULT_DIR` to your Obsidian vault path. If `VAULT_DIR` is empty or the path doesn't exist, the hook does nothing.
 
 ```python
-# .claude/hooks/sync_to_obsidian.py — line 6
-VAULT_DIR = Path("/your/obsidian/vault/path")
+# .claude/hooks/sync_to_obsidian.py — line 8
+VAULT_DIR = "/path/to/your/ObsidianVault/folder"
 ```
 
 ### Managing logs

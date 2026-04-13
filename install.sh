@@ -37,6 +37,10 @@ main() {
                         "type": "command",
                         "command": ".claude/hooks/cclog-hook.sh PostToolUse",
                         "timeout": 5000
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/sync_to_obsidian.py"
                     }
                 ]
             }
@@ -48,6 +52,10 @@ main() {
                         "type": "command",
                         "command": ".claude/hooks/cclog-hook.sh Stop",
                         "timeout": 5000
+                    },
+                    {
+                        "type": "command",
+                        "command": "python3 .claude/hooks/sync_to_obsidian.py"
                     }
                 ]
             }
