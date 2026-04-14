@@ -1,6 +1,6 @@
 # wise-mode
 
-A collection of [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills and hooks for disciplined development — **terse-mode** for brevity, **swarm** for parallel delegation plans, **wise** for architect-mode quality gates, **wise-cont** for persistent architect mode, and **cclog** for automatic session logging.
+A collection of [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills and hooks for disciplined development — **terse-mode** for brevity, **swarm** for parallel delegation plans, **wise** for architect-mode quality gates, **wise-cont** for persistent architect mode, **dev-with-review** for implementation with independent AI review, and **cclog** for automatic session logging.
 
 ## Components
 
@@ -10,6 +10,7 @@ A collection of [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sk
 | **swarm** | Skill (`/swarm`) | Low-token subagent orchestration — creates scoped agent briefs plus runnable swarm files |
 | **wise** | Skill (`/wise`) | Architect mode — systematic planning, TDD, adversarial self-review, and quality gates (single task) |
 | **wise-cont** | Skill (`/wise-cont`) | Continuous architect mode — activate once, applies to all subsequent messages in the session |
+| **dev-with-review** | Skill (`/dev-with-review`) | Implement + continuous self-review + independent AI review via separate Claude instance |
 | **cclog** | Hook | Auto-records all Claude Code sessions to `.claude/log/` — zero token consumption |
 | **sync_to_obsidian** | Hook | Syncs session transcripts to Obsidian vault as Markdown notes |
 
@@ -49,6 +50,16 @@ curl -fsSL https://raw.githubusercontent.com/den-emon/wise-mode/main/skills/wise
 mkdir -p .claude/skills/wise-cont
 curl -fsSL https://raw.githubusercontent.com/den-emon/wise-mode/main/skills/wise-cont/SKILL.md \
   -o .claude/skills/wise-cont/SKILL.md
+
+# dev-with-review
+mkdir -p .claude/skills/dev-with-review/scripts .claude/skills/dev-with-review/references
+curl -fsSL https://raw.githubusercontent.com/den-emon/wise-mode/main/skills/dev-with-review/SKILL.md \
+  -o .claude/skills/dev-with-review/SKILL.md
+curl -fsSL https://raw.githubusercontent.com/den-emon/wise-mode/main/skills/dev-with-review/scripts/ai_review.sh \
+  -o .claude/skills/dev-with-review/scripts/ai_review.sh
+curl -fsSL https://raw.githubusercontent.com/den-emon/wise-mode/main/skills/dev-with-review/references/reviewer_prompt.md \
+  -o .claude/skills/dev-with-review/references/reviewer_prompt.md
+chmod +x .claude/skills/dev-with-review/scripts/ai_review.sh
 
 # hooks
 mkdir -p .claude/hooks
@@ -189,6 +200,46 @@ The agent automatically assesses each request and applies the appropriate level:
 
 Deactivate with `/wise-cont-off` or "back to normal mode".
 
+## dev-with-review — Implement + Independent Review
+
+When you type `/dev-with-review`, the agent implements your task while continuously reviewing its own diffs. At the final gate, it invokes a **separate Claude instance** (`claude -p`) for an independent code review — free from development-context bias.
+
+```
+/dev-with-review add input validation to the signup form
+```
+
+| Phase | What happens |
+|-------|-------------|
+| 1. **Understand** | Restate task, identify files, risks, and validation strategy |
+| 2. **Implement** | Small batches of changes |
+| 3. **Self-review loop** | After each batch: `git diff`, adversarial review, fix issues |
+| 4. **Validation** | Run lint, tests, typecheck (auto-detected per language) |
+| 5. **Independent review** | Invoke `claude -p` with reviewer prompt — JSON score + findings |
+| 6. **Final report** | Structured summary with score, findings, and remaining risks |
+
+The independent reviewer scores the diff 0–100 and returns findings by severity (critical/high/medium/low/info). Critical and high findings must be fixed before completion.
+
+### Skill files
+
+| File | Purpose |
+|------|---------|
+| `SKILL.md` | Core skill definition — phases, rules, and behavioral constraints |
+| `scripts/ai_review.sh` | Standalone script to run `claude -p` review from the command line |
+| `references/reviewer_prompt.md` | System prompt for the independent reviewer instance |
+
+### When to use dev-with-review vs wise
+
+| Situation | Recommended |
+|-----------|-------------|
+| Emphasis on **planning, TDD, and architecture** — new features, multi-file refactors, schema changes | `/wise` or `/wise-cont` |
+| Emphasis on **implementation quality and review** — bug fixes, feature work where you want a second opinion | `/dev-with-review` |
+| Single task, full ceremony with GitHub issue tracking | `/wise` |
+| Session-wide architect standards | `/wise-cont` |
+| Need an independent, bias-free code review as a final gate | `/dev-with-review` |
+| Simple low-risk change (single file, < 50 lines) | Either works — wise auto-scales to lightweight mode |
+
+**Key difference**: wise focuses on *how you think and plan* (architect-first, TDD, 8 phases). dev-with-review focuses on *how you verify* (continuous diff review + independent AI reviewer). They complement each other — wise ensures you build the right thing, dev-with-review ensures you built it correctly.
+
 ## cclog — Session Logger (Hook)
 
 Automatically records all Claude Code tool usage to `.claude/log/` as Markdown files. Runs as a hook — **zero session token consumption**.
@@ -291,7 +342,7 @@ rm -rf .claude/log/*
 
 ```bash
 # All components
-rm -rf .claude/skills/terse-mode .claude/skills/swarm .claude/skills/wise .claude/skills/wise-cont
+rm -rf .claude/skills/terse-mode .claude/skills/swarm .claude/skills/wise .claude/skills/wise-cont .claude/skills/dev-with-review
 rm -f .claude/hooks/cclog-hook.sh .claude/hooks/sync_to_obsidian.py
 
 # Individual
@@ -299,6 +350,7 @@ rm -rf .claude/skills/terse-mode
 rm -rf .claude/skills/swarm
 rm -rf .claude/skills/wise
 rm -rf .claude/skills/wise-cont
+rm -rf .claude/skills/dev-with-review
 rm -f .claude/hooks/cclog-hook.sh
 rm -f .claude/hooks/sync_to_obsidian.py
 ```

@@ -19,6 +19,7 @@ main() {
         "swarm|SKILL.md"
         "wise|SKILL.md,CHECKLISTS.md,PATTERNS.md"
         "wise-cont|SKILL.md"
+        "dev-with-review|SKILL.md,scripts/ai_review.sh,references/reviewer_prompt.md"
     )
 
     # Hook files to install
@@ -148,11 +149,11 @@ main() {
         IFS=',' read -ra skill_files <<< "${skill_files_str}"
 
         info "Downloading ${skill_name} skill files..."
-        mkdir -p "${TMPDIR_DOWNLOAD}/skills/${skill_name}"
 
         for file in "${skill_files[@]}"; do
             url="${REPO_RAW_BASE}/skills/${skill_name}/${file}"
             dest="${TMPDIR_DOWNLOAD}/skills/${skill_name}/${file}"
+            mkdir -p "$(dirname "${dest}")"
             if fetch "${url}" > "${dest}" 2>/dev/null; then
                 if [ ! -s "${dest}" ]; then
                     error "Downloaded ${skill_name}/${file} is empty."
@@ -202,13 +203,17 @@ main() {
         IFS=',' read -ra skill_files <<< "${skill_files_str}"
 
         target_dir="${PROJECT_ROOT}/.claude/skills/${skill_name}"
-        mkdir -p "${target_dir}"
 
         for file in "${skill_files[@]}"; do
-            cp "${TMPDIR_DOWNLOAD}/skills/${skill_name}/${file}" "${target_dir}/${file}"
-            INSTALLED_FILES+=("${target_dir}/${file}")
+            dest="${target_dir}/${file}"
+            mkdir -p "$(dirname "${dest}")"
+            cp "${TMPDIR_DOWNLOAD}/skills/${skill_name}/${file}" "${dest}"
+            INSTALLED_FILES+=("${dest}")
         done
     done
+
+    # ── Make skill scripts executable ─────────────────────────────
+    find "${PROJECT_ROOT}/.claude/skills" -name "*.sh" -exec chmod +x {} \;
 
     # ── Install hooks ─────────────────────────────────────────────
     hooks_dir="${PROJECT_ROOT}/.claude/hooks"
@@ -282,11 +287,12 @@ with open(settings_path, 'w') as f:
     done
     echo ""
     info "Usage:"
-    echo "    /terse-mode - Brevity mode with lite/full/ultra intensity"
-    echo "    /swarm      - Parallel delegation planning"
-    echo "    /wise       - Architect mode for a single task"
-    echo "    /wise-cont  - Architect mode for the entire session"
-    echo "    cclog       - Auto-records sessions via hooks (no commands needed)"
+    echo "    /terse-mode      - Brevity mode with lite/full/ultra intensity"
+    echo "    /swarm           - Parallel delegation planning"
+    echo "    /wise            - Architect mode for a single task"
+    echo "    /wise-cont       - Architect mode for the entire session"
+    echo "    /dev-with-review - Implement + continuous self-review + independent AI review"
+    echo "    cclog            - Auto-records sessions via hooks (no commands needed)"
     echo ""
     info "Session logs are saved to .claude/log/ automatically."
     echo ""
